@@ -1,0 +1,29 @@
+import glob
+import os
+import pandas as pd
+import numpy as np
+
+# output folder
+outdir = 'multiple_alignments_1%_threshold'
+
+# os.mkdir('%s/full_genome' % outdir)
+
+# this step is needed only if you have a number of reads per fastq file
+df = pd.read_csv('sputum_reads.csv', header = None, names = ['file', 'reads'])
+check_sp = dict(zip(df.file, df.reads))
+
+# starts calculating - inserting relative values 
+for file in glob.glob(os.path.join('sp_out/', "*.csv")):
+    # map "files" column to real files if they were coded, change accordingly
+    temp_key = file.split('.')[0].split('_')[-1]
+
+    sp_out = pd.read_csv(file, sep = ',')
+
+    sp_out['total_reads'] = check_sp[int(temp_key)]
+    sp_out['relative_value_%'] = sp_out.mapped_reads / sp_out.total_reads * 100
+    
+    sp_out = sp_out.sort_values(by = ['relative_value_%'], ascending=False)
+    # takes only rows with relative values gt 1%
+    sp_out = sp_out[sp_out['relative_value_%'] >= 1]
+    # records the dataset to csv file
+    sp_out.to_csv('%s/sputum/%s' % (outdir, file.split('\\')[1]), index = False)
